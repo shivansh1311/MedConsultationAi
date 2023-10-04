@@ -1,79 +1,71 @@
-
 from fastapi import FastAPI
+import os
 from pydantic import BaseModel
-import google.generativeai as palm
+from langchain.llms import GooglePalm
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain, SequentialChain
 
 app = FastAPI()
 
-# Load the model and configure it
-models = [
-    m for m in palm.list_models() if "generateText" in m.supported_generation_methods
-]
-
-for m in models:
-    print(f"Model Name: {m.name}")
-model = models[0].name
-model
-palm.configure(api_key="AIzaSyAbhkn4KQxk8lBNtVEF3sNXV1e47SzO2Ic")
+os.environ['GOOGLE_API_KEY'] = "AIzaSyAbhkn4KQxk8lBNtVEF3sNXV1e47SzO2Ic"
 
 class InputData(BaseModel):
-    text: str
     symptoms: str
+    history: str
 
-class OutputData(BaseModel):
-    result: str
-
-@app.post("/generate")
+@app.post("/predict")
 async def generate_text(data: InputData):
-    # Create a prompt using the provided text and symptoms
-    
-    prompt =f"""AI, please consider yourself a doctor and provide a comprehensive response to the patient's symptoms, taking into account the patient's medical history, lifestyle, and preferences.
-    Refer to the patient in first person and not the third.
 
-    Patient's Current Symptoms:
+    title_template = PromptTemplate(
+        input_variables = ['symptoms','history'],
+        template = """AI, please consider yourself a doctor and provide a comprehensive response to the patient's symptoms, taking into account the patient's medical history, lifestyle, and preferences.
+        Refer to the patient in first person and not the third.
 
-    [Patient describes their current symptoms here.] only metion the symptoms given by the patient in one sentence don't add anything else.
+        Patient's Current Symptoms:
 
-    AI Doctor's Response:
+        [Patient describes their current symptoms here.] only metion the symptoms given by the patient in one sentence don't add anything else.
 
-    Based on the patient's reported symptoms and the provided medical history, I recommend the following:
+        AI Doctor's Response:
 
-    Diagnosis:
-    Mention what from his medical history could be contrubuting to this sympton.
+        Based on the patient's reported symptoms and the provided medical history, I recommend the following:
 
-    [Provide a potential diagnosis based on the reported symptoms and medical history.]
+        Diagnosis:
+        Mention what from his medical history could be contrubuting to this sympton.
 
-    Treatment Recommendations:
+        [Provide a potential diagnosis based on the reported symptoms and medical history.]
 
-    Medication: [Prescribe any necessary medications, dosage, and frequency.]
+        Treatment Recommendations:
 
-    Lifestyle Modifications: [Recommend any lifestyle changes, such as dietary adjustments or exercise routines.]
+        Medication: [Prescribe any necessary medications, dosage, and frequency.]
 
-    Follow-up: Schedule a follow-up appointment to assess the patient's progress and make any necessary adjustments to the treatment plan.
+        Lifestyle Modifications: [Recommend any lifestyle changes, such as dietary adjustments or exercise routines.]
 
-    Preventive Measures:
+        Follow-up: Schedule a follow-up appointment to assess the patient's progress and make any necessary adjustments to the treatment plan.
 
-    [Provide advice on preventive measures or actions the patient can take to manage their condition and improve overall health.]
+        Preventive Measures:
 
-    Emergency Situations:
+        [Provide advice on preventive measures or actions the patient can take to manage their condition and improve overall health.]
 
-    [Explain under what circumstances the patient should seek immediate medical attention or contact emergency services.]
+        Emergency Situations:
 
-    Patient's Current Symptoms:
-    {data.symptoms}
-    Patient's Medical History:
-    {data.text}
+        [Explain under what circumstances the patient should seek immediate medical attention or contact emergency services.]
 
-    AI Doctor's Response:
-    """ 
-   
-    completion = palm.generate_text(
-        model=model,
-        prompt=prompt,
-        temperature=0.3,
-        max_output_tokens=1000,
+        Patient's Current Symptoms:
+        {symptoms}
+        Patient's Medical History:
+        {history}
+        )
+        AI Doctor's Response:
+        """ 
     )
-    
-    response = OutputData(result=completion.result)
+
+    llm = GooglePalm(temperature = 0.3)
+
+    title_chain = LLMChain(llm = llm, prompt = title_template, verbose = True, output_key = 'output')
+
+    sequential_chain = SequentialChain(chains = [title_chain], input_variables = ['symptoms','history'], output_variables = ['output'], verbose = True)
+
+    response = sequential_chain({'symptoms' : data.symptoms, 'history' : data.history})
+
     return response
 
