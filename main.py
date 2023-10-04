@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import os
 from pydantic import BaseModel
 from langchain.llms import GooglePalm
@@ -68,4 +68,6 @@ async def generate_text(data: InputData):
     response = sequential_chain({'symptoms' : data.symptoms, 'history' : data.history})
 
     return response
-
+    
+ except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
