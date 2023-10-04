@@ -18,7 +18,7 @@ async def generate_text(data: InputData):
 
     title_template = PromptTemplate(
         input_variables = ['symptoms','history'],
-        template = """AI, please consider yourself a doctor and provide a comprehensive response to the patient's symptoms, taking into account the patient's medical history, lifestyle, and preferences.
+        template = """AI, please consider yourself a doctor and provide a comprehensive response to the patient's symptoms, taking into account the patient's dignosis.
         Refer to the patient in first person and not the third.
 
         Patient's Current Symptoms:
@@ -27,16 +27,15 @@ async def generate_text(data: InputData):
 
         AI Doctor's Response:
 
-        Based on the patient's reported symptoms and the provided medical history, I recommend the following:
+        Based on the patient's reported symptoms and the provided dignosis, I recommend the following:
 
         Diagnosis:
-        Mention what from his medical history could be contrubuting to this sympton.
-
-        [Provide a potential diagnosis based on the reported symptoms and medical history.]
+        
+        [Provide a potential diagnosis based on the reported symptoms and dignosis only if it is a contributing factor.]
 
         Treatment Recommendations:
 
-        Medication: [Prescribe any necessary medications, dosage, and frequency.]
+        Medication: [Prescribe any necessary medications, dosage, and frequency.] be presise and not vague
 
         Lifestyle Modifications: [Recommend any lifestyle changes, such as dietary adjustments or exercise routines.]
 
@@ -52,7 +51,7 @@ async def generate_text(data: InputData):
 
         Patient's Current Symptoms:
         {symptoms}
-        Patient's Medical History:
+        Patient's Dignosis:
         {history}
         )
         AI Doctor's Response:
